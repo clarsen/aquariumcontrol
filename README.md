@@ -8,4 +8,4 @@ It controls a heater via an MQTT (Tasmota) WiFi smart plug, measures temperature
 include/config.h.sample needs to be copied to include/config.h and filled with values that suite your environment (wifi + mqtt + influxdb).
 
 # BOM
-Total $36 of parts see [BOM](aquarium-controller-simple-pricing.csv)
+Total $62 of parts (half of which is the heater itself) see [BOM](aquarium-controller-simple-pricing.csv)

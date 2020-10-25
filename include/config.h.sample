@@ -1,0 +1,22 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#define WIFI_SSID "YOUR_SSID"
+#define WIFI_PASSWORD "YOUR_PASSWORD"
+
+#define MQTT_SERVER "YOUR_MQTT_SERVER_IP_ADDRESS"
+#define MQTT_USER "YOUR_MQTT_USER"
+#define MQTT_PASSWORD "YOUR_MQTT_PASSWORD"
+
+#define INFLUX_URL "https://YOUR_INFLUX_SERVER:8086" 
+#define INFLUX_DB "YOUR_INFLUX_DB"
+#define INFLUX_USER "YOUR_INFLUX_USER"
+#define INFLUX_PASSWORD "YOUR_INFLUX_PASSWORD"
+
+#define LOCAL_TZ "PST8PDT"
+
+// find this by doing a onewire scan
+#define AQUARIUM_DS18B20_ADDR {0x28, 0x36, 0x0b, 0xaa, 0xbb, 0xcc, 0xdd, 0xee}
+
+
+#endif

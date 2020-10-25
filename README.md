@@ -8,7 +8,7 @@ It controls a heater via an MQTT (Tasmota) WiFi smart plug, measures temperature
 
 ## Setup
 
-include/config.h.sample needs to be copied to include/config.h and filled with values that suite your environment (wifi + mqtt + influxdb).
+include/config.h.sample needs to be copied to include/config.h and filled with values for your environment (WiFi, MQTT, InfluxDB, timezone).
 
 ## BOM
 

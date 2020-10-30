@@ -21,8 +21,6 @@ double kp = 67905.48, ki = 1437.2, kd = 0; // from autotune
 // slow PWM
 double WindowSize = 60000;
 unsigned long windowStartTime;
-bool relayOn = false;
-bool firstTime = true;
 
 double aTuneStep = WindowSize / 2, aTuneNoise = 0.2, aTuneStartValue = WindowSize / 2;
 unsigned int aTuneLookBack = 20;
@@ -55,6 +53,19 @@ InfluxDBClient influxClient;
 unsigned long influxReportingTime;
 
 unsigned long sampleTimeLoopMs = 2000;
+
+// if relay has expected cycle time of 100,000 then a cycle every 10 minutes would be 694 days
+// however haven't figured how to make PID work at this cycle time
+// simple set point thermo instead
+float onTemp = 78.70; // range between 78.69 to 79.25
+float offTemp = 79.24;
+unsigned int onTempSettle = 0;
+unsigned int offTempSettle = 0;
+bool heaterState = false; // false off
+unsigned long firstOnTime = 0;
+unsigned long firstOffTime = 0;
+unsigned long onTime = 0;
+unsigned long offTime = 0;
 
 void setup()
 {
@@ -138,6 +149,42 @@ void loop()
     myPID.Compute();
   }
 
+  if (input <= onTemp) {
+    onTempSettle += 1;
+    if (onTempSettle > 3) {
+      if (onTempSettle == 4) {
+        firstOnTime = millis();
+      }
+      heaterState = true;
+    }
+  } else {
+    onTempSettle = 0;
+  }
+
+  if (input >= offTemp) {
+    offTempSettle += 1;
+    if (offTempSettle > 3) {
+      if (offTempSettle == 4) {
+        firstOffTime = millis();
+      }
+      heaterState = false;
+    }
+  } else {
+    offTempSettle = 0;
+  }
+
+  if (heaterState) {
+      client.publish("cmnd/aquariumheater/POWER", "on");
+      Serial.println("on");
+      onTime = millis() - firstOnTime;
+  } else {
+      client.publish("cmnd/aquariumheater/POWER", "off");
+      Serial.println("off");
+      offTime = millis() - firstOffTime;
+  }
+
+// no PID for now
+#if 0
   unsigned long now = millis();
   if (now - windowStartTime > WindowSize)
   { //time to shift the Relay Window
@@ -147,24 +194,15 @@ void loop()
 
   if (output > now - windowStartTime)
   {
-    if (!relayOn || firstTime)
-    {
-      Serial.println("on");
-      relayOn = true;
-      client.publish("cmnd/aquariumheater/POWER", "on");
-      firstTime = false;
-    }
+    client.publish("cmnd/aquariumheater/POWER", "on");
+    Serial.println("on");
   }
   else
   {
-    if (relayOn || firstTime)
-    {
-      Serial.println("off");
-      relayOn = false;
-      client.publish("cmnd/aquariumheater/POWER", "off");
-      firstTime = false;
-    }
+    Serial.println("off");
+    client.publish("cmnd/aquariumheater/POWER", "off");
   }
+#endif
 
   if (millis() > serialTime)
   {
@@ -184,8 +222,8 @@ void loop()
   if (millis() > mqttReportingTime)
   {
     char msg[1024];
-    snprintf(msg, sizeof(msg), "setpoint: %0.2f input: %0.2f output: %0.2f kp: %0.2f ki: %0.2f kd: %0.2f",
-             setpoint, input, output, myPID.GetKp(), myPID.GetKi(), myPID.GetKd());
+    snprintf(msg, sizeof(msg), "on(ms): %ld off(ms): %ld setpoint: %0.2f input: %0.2f output: %0.2f kp: %0.2f ki: %0.2f kd: %0.2f",
+             onTime, offTime, setpoint, input, output, myPID.GetKp(), myPID.GetKi(), myPID.GetKd());
     client.publish("aquariumcontrol/status", msg);
     mqttReportingTime += 10000;
   }
@@ -201,6 +239,12 @@ void loop()
 
 void SerialSend()
 {
+  Serial.print("on(ms): ");
+  Serial.print(onTime);
+  Serial.print(" ");
+  Serial.print("off(ms): ");
+  Serial.print(offTime);
+  Serial.print(" ");
   Serial.print("setpoint: ");
   Serial.print(setpoint);
   Serial.print(" ");

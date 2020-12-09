@@ -1,3 +1,4 @@
+#include <esp_task_wdt.h>
 #include <Arduino.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -67,6 +68,9 @@ unsigned long firstOffTime = 0;
 unsigned long onTime = 0;
 unsigned long offTime = 0;
 
+//10 seconds WDT
+#define WDT_TIMEOUT 10
+
 void setup()
 {
   // put your setup code here, to run once:
@@ -108,6 +112,8 @@ void setup()
     changeAutoTune();
     tuning = true;
   }
+  esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
+  esp_task_wdt_add(NULL); //add current thread to WDT watch
 }
 
 void loop()
@@ -182,6 +188,7 @@ void loop()
       Serial.println("off");
       offTime = millis() - firstOffTime;
   }
+  esp_task_wdt_reset(); // keep ESP alive
 
 // no PID for now
 #if 0

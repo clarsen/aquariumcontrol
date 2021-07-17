@@ -34,6 +34,9 @@ unsigned long serialTime;
 
 const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASSWORD;
+unsigned long lastWifiConnectAttempt = 0;
+unsigned long wifiConnectAttemptInterval = 30000;
+
 const char *mqtt_server = MQTT_SERVER;
 const char *mqtt_user = MQTT_USER;
 const char *mqtt_password = MQTT_PASSWORD;
@@ -48,6 +51,7 @@ void SerialSend();
 void changeAutoTune();
 void AutoTuneHelper(boolean start);
 void setup_wifi();
+void maybe_reconnect_wifi();
 void reconnect();
 
 InfluxDBClient influxClient;
@@ -121,6 +125,8 @@ void loop()
   // put your main code here, to run repeatedly:
   // byte i;
   // byte addr[8];
+  maybe_reconnect_wifi();
+
   unsigned long start = millis();
   if (!client.connected())
   {
@@ -223,6 +229,12 @@ void loop()
     Point measurement("aquarium");
     measurement.addField("temp_f", input);
     influxClient.writePoint(measurement);
+
+    Point measurement2("wifi");
+    measurement2.addTag("device", "aquarium_heater");
+    measurement2.addField("rssi", (float)WiFi.RSSI());
+    influxClient.writePoint(measurement2);
+    
     influxReportingTime += 15000;
   }
 
@@ -340,6 +352,19 @@ void setup_wifi()
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+}
+
+void maybe_reconnect_wifi()
+{
+  unsigned long currentMillis = millis();
+  // if WiFi is down, try reconnecting
+  if ((WiFi.status() != WL_CONNECTED) && (currentMillis - lastWifiConnectAttempt >= wifiConnectAttemptInterval)) {
+    Serial.print(millis());
+    Serial.println("Reconnecting to WiFi...");
+    WiFi.disconnect();
+    WiFi.reconnect();
+    lastWifiConnectAttempt = currentMillis;
+  }
 }
 
 void reconnect()
